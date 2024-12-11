@@ -70,8 +70,8 @@ class DictPersisted(collections.abc.MutableMapping):
 from sanic.views import HTTPMethodView
 
 class ProxyRoutes(HTTPMethodView):
-    def __init__(self):
-        self.routes = DictPersisted(data_source=Path('proxy-routing.json'))
+    def __init__(self, data_source: Path):
+        self.routes = DictPersisted(data_source)
 
     async def get(self, request):
         return sanic.response.json(dict(self.routes))
@@ -86,9 +86,8 @@ class ProxyRoutes(HTTPMethodView):
         del self.routes[params['host']]
         return sanic.response.json({}, status=201)
 
-proxy_routes_view = ProxyRoutes.as_view()
-app.add_route(proxy_routes_view, "/_proxy")
-
+proxy_routes = ProxyRoutes(Path('proxy-routing.json'))
+app.add_route(proxy_routes.as_view(), "/_proxy")
 
 
 @app.route("/<path:path>", methods=tuple(map(str, sanic.HTTPMethod)))
@@ -96,7 +95,7 @@ async def proxy(request: sanic.Request, path: str):
     host = request.headers.pop('host', '')
     log.info(f'Lookup {host=} {path=}')
 
-    new_host = proxy_routes_view.routes.get(host)
+    new_host = proxy_routes.routes.get(host)
     if not new_host:
         message = f'FAIL: no route setup for {host=}'
         log.info(message)
