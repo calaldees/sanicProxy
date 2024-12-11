@@ -59,3 +59,28 @@ curl \
 curl -X GET  --url http://localhost:9100/_proxy
 curl -X POST --url http://localhost:9100/_proxy -d '{"host": "test.com", "target":"test.com"}'
 ```
+
+
+Sanic Notes
+-----------
+
+```python
+#app.config.CORS_ORIGINS = "http://foobar.com,http://bar.com"
+#Extend(app)
+
+#app.config.cors_origins = "*"
+#from sanic_ext.extensions.http.cors import add_cors
+#app.config.CORS_ORIGINS = ["*"]
+#add_cors(app)
+
+#@app.get("/test/")
+#def test(request):
+#    return sanic.response.json({'hello': 'world'})
+
+#@app.get("/")
+#async def root(request):
+#    return sanic.response.redirect('/static/proxy-frontend.html')
+
+#app.static("/static/", ".")
+
+```

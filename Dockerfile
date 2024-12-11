@@ -4,7 +4,6 @@ WORKDIR /app/
 
 RUN pip install --no-cache \
     sanic \
-    sanic-ext \
     aiohttp \
 && true
 

@@ -1,31 +1,13 @@
 import json
 from pathlib import Path
 import collections
-import aiohttp
 
+import aiohttp
 import sanic
 from sanic.log import logger as log
-#from sanic_ext import Extend
+
 
 app = sanic.Sanic("proxy")
-
-#app.config.CORS_ORIGINS = "http://foobar.com,http://bar.com"
-#Extend(app)
-
-#app.config.cors_origins = "*"
-#from sanic_ext.extensions.http.cors import add_cors
-#app.config.CORS_ORIGINS = ["*"]
-#add_cors(app)
-
-#@app.get("/test/")
-#def test(request):
-#    return sanic.response.json({'hello': 'world'})
-
-#@app.get("/")
-#async def root(request):
-#    return sanic.response.redirect('/static/proxy-frontend.html')
-
-#app.static("/static/", ".")
 
 
 @app.get("/static/proxy-frontend.html")
@@ -75,17 +57,22 @@ class ProxyRoutes(HTTPMethodView):
         return sanic.response.json(dict(self.routes))
 
     async def post(self, request):
-        params = request.json
-        self.routes[params['host']] = params['target']
+        self.routes.clear()
+        self.routes.update(request.json)
+        return sanic.response.json({}, status=201)
+
+    async def put(self, request):
+        self.routes.update(request.json)
         return sanic.response.json({}, status=201)
 
     async def delete(self, request):
-        params = request.json
-        del self.routes[params['host']]
+        for key in request.json.keys():
+            del self.routes[key]
         return sanic.response.json({}, status=201)
 
+# BROKEN :( I want a view with state ... gonna have to punch this ...
 proxy_routes = ProxyRoutes(Path('proxy-routing.json'))
-app.add_route(proxy_routes.as_view(), "/_proxy")
+app.add_route(ProxyRoutes.as_view(), "/_proxy")
 
 
 @app.route("/<path:path>", methods=tuple(map(str, sanic.HTTPMethod)))
@@ -93,7 +80,7 @@ async def proxy(request: sanic.Request, path: str):
     host = request.headers.pop('host', '')
     log.info(f'Lookup {host=} {path=}')
 
-    new_host = proxy_routes.routes.get(host)
+    new_host = proxy_routes.routes.get(host)  # BROKEN
     if not new_host:
         message = f'FAIL: no route setup for {host=}'
         log.info(message)
