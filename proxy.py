@@ -1,8 +1,6 @@
 import json
 from pathlib import Path
-from functools import cached_property
 import collections
-#import httpx
 import aiohttp
 
 import sanic
@@ -122,20 +120,6 @@ async def proxy(request: sanic.Request, path: str):
                 await _response.send(chunk)
             await _response.eof()
 
-    # HTTPX
-    # always decodes gzip response, making this problematic for passthough
-    # async with httpx.AsyncClient() as client:
-    #     response = await client.request(
-    #         method=request.method,
-    #         url=f"{new_host}{request.raw_url.decode('utf8')}",
-    #         headers=request.headers,
-    #         content=request.body
-    #     )
-    #     return sanic.response.ResponseStream(status=response.status_code, headers=response.headers, streaming_fn=response.aiter_raw())
-    #     #return sanic.response.HTTPResponse(status=response.status_code, headers=response.headers, body=response.aiter_raw())
-    #breakpoint()
-
-    #return sanic.response.json({'path': path})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, dev=True, access_log=True)  #workers=4, auto_reload=True

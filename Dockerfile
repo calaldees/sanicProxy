@@ -5,7 +5,6 @@ WORKDIR /app/
 RUN pip install --no-cache \
     sanic \
     sanic-ext \
-    httpx \
     aiohttp \
 && true
 
