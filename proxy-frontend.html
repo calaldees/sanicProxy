@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link id="favicon" rel="shortcut icon" type="image/png" href="data:image/png;base64,....==" />
+    <title>Proxy</title>
+
+    <style>
+        .selected {background-color: lightgrey;}
+    </style>
+</head>
+<body>
+    <h1>Proxy</h1>
+
+    <div id="services"></div>
+<script type="module">
+
+    import {h} from "./core.js"
+
+    const URL_configurable_http_proxy = 'http://localhost:8001'  // TODO from query string
+
+    let _services = {}
+
+
+    function getLocalStoredServices() {return JSON.parse(localStorage['selected'] || "{}")}
+    function setLocalStoredServices(data) {return localStorage['selected'] = JSON.stringify(data)}
+    function updateServices(data) {
+        //console.log('updateServices',data)
+        setLocalStoredServices(Object.assign(getLocalStoredServices(), data))
+        renderServices()
+        updateProxy(getLocalStoredServices())
+    }
+
+    function updateProxy(data) {
+        fetch(`${URL_configurable_http_proxy}/api/routes`)
+            .then(response => response.json())
+            .then(data => console.log('/api/routes', data))
+        .catch(err => console.error(err))
+    }
+    //setLocalStoredServices({'athena': 'dev'})
+
+    function renderServices(services, el, selected) {
+        services = services || _services
+        selected = selected || getLocalStoredServices()
+        el = el || document.getElementById('services')
+        el.innerHTML = ''
+        el.appendChild(
+            h('table', {}, Object.entries(services).map(([service,envs])=>
+                h('tr', {}, [
+                    h('td', {}, service),
+                    ...Object.entries(envs).map(([env, url])=>
+                        h('td', {
+                            classList: `${env==selected[service]?'selected':''}`,
+                            onclick: ()=>updateServices({[service]: env}),
+                        }, url)
+                    )
+                ])
+            ))
+        )
+    }
+
+    fetch(`services.json`)
+        .then(response => response.json())
+        .then((data)=>_services=data.services)
+        .then(renderServices)
+    .catch(err => console.error(err))
+
+</script>
+</body>
+</html>
