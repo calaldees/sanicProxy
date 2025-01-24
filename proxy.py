@@ -21,6 +21,8 @@ class DictPersisted(collections.abc.MutableMapping):
     """
     def __init__(self, data_source: Path):
         self.data_source = data_source
+        if not self.data_source.exists():
+            self.data_source.write_text('{}')
         with self.data_source.open() as f:
             self.routes = json.load(f)
 
