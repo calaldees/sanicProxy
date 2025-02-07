@@ -1,5 +1,5 @@
 DOCKER_IMAGE:=proxy
-DOCKER_RUN:=docker run --rm -it --publish 9100:8000 ${DOCKER_IMAGE}
+DOCKER_RUN:=docker run --rm -it --publish 9923:8000 ${DOCKER_IMAGE}
 
 proxy: build
 	${DOCKER_RUN}

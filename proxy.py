@@ -4,15 +4,8 @@ import collections
 
 import aiohttp
 import sanic
+from sanic.views import HTTPMethodView
 from sanic.log import logger as log
-
-
-app = sanic.Sanic("proxy")
-
-
-@app.get("/static/proxy-frontend.html")
-def proxy_frontend(request: sanic.Request):
-    return sanic.response.file("proxy-frontend.html")
 
 
 class DictPersisted(collections.abc.MutableMapping):
@@ -48,12 +41,23 @@ class DictPersisted(collections.abc.MutableMapping):
         return self.routes.__len__()
 
 
+# This feels bad - I did not want this at the module level
+ROUTES = DictPersisted(Path('proxy-routing.json'))
 
-from sanic.views import HTTPMethodView
+
+app = sanic.Sanic("proxy")
+
+
+@app.get("/static/proxy-frontend.html")
+def proxy_frontend(request: sanic.Request):
+    return sanic.response.file("proxy-frontend.html")
+
 
 class ProxyRoutes(HTTPMethodView):
-    def __init__(self, data_source: Path):
-        self.routes = DictPersisted(data_source)
+    #def __init__(self, data_source: Path):
+    #    self.routes = DictPersisted(data_source)
+    def __init__(self):
+        self.routes = ROUTES  # I am sad
 
     async def get(self, request):
         return sanic.response.json(dict(self.routes))
@@ -72,24 +76,22 @@ class ProxyRoutes(HTTPMethodView):
             del self.routes[key]
         return sanic.response.json({}, status=201)
 
-# BROKEN :( I want a view with state ... gonna have to punch this ...
-proxy_routes = ProxyRoutes(Path('proxy-routing.json'))
 app.add_route(ProxyRoutes.as_view(), "/_proxy")
 
 
 @app.route("/<path:path>", methods=tuple(map(str, sanic.HTTPMethod)))
 async def proxy(request: sanic.Request, path: str):
-    host = request.headers.pop('host', '')
-    log.info(f'Lookup {host=} {path=}')
+    request_host = request.headers.pop('host', '')
+    log.info(f'Lookup {request_host=} {path=}')
 
-    new_host = proxy_routes.routes.get(host)  # BROKEN
-    if not new_host:
-        message = f'FAIL: no route setup for {host=}'
+    target_host = ROUTES.get(request_host)
+    if not target_host:
+        message = f'FAIL: no route setup for {request_host=}'
         log.info(message)
         return sanic.response.json({'error': message}, status=400)
 
-    url = f"{new_host}{request.raw_url.decode('utf8')}"
-    log.info(f'Routing {host=} {new_host=} {path=} {url=}')
+    url = f"{target_host}{request.raw_url.decode('utf8')}"
+    log.info(f'Routing {request_host=} {target_host=} {path=} {url=}')
 
     # AIOHTTP
     async with aiohttp.ClientSession() as session:
@@ -98,7 +100,7 @@ async def proxy(request: sanic.Request, path: str):
             url=url,
             headers=request.headers,
             data=request.body,
-            #auto_decompress=False,
+            auto_decompress=False,
             ssl=False,  # Ignore all SSL certificates
         ) as response:
             _response = await request.respond(
