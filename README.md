@@ -15,7 +15,7 @@ curl \
   --data "${_DATA}" \
   --url "http://localhost:9923/_proxy"
 
-_DATA='{"github.com": "gitlab.com"}' && \
+_DATA='{"github.com": "https://gitlab.com"}' && \
 curl \
   --request PUT \
   --header "Content-Type: application/json" \
@@ -32,5 +32,6 @@ curl \
 curl "http://localhost:9923/_proxy"
 
 curl "http://localhost:9923/"
+open "http://localhost:9923/"
 
 ```
