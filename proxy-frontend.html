@@ -15,7 +15,16 @@
     <div id="services"></div>
 <script type="module">
 
-    import {h} from "./core.js"
+    const hasIterationProtocol = variable => variable !== null && Symbol.iterator in Object(variable)
+    function h(type, params, children) {
+        const el = document.createElement(type)
+        for (let [k,v] of Object.entries(params)) {el.setAttribute(k,v)}
+        if      (["string","number"].indexOf(typeof(children))>=0) {el.appendChild(document.createTextNode(children))}
+        else if (hasIterationProtocol(children)) {for (let c of children) {el.append(c)}}
+        else if (children                      ) {el.appendChild(children)}
+        return el
+    }
+
 
     const URL_configurable_http_proxy = 'http://localhost:8001'  // TODO from query string
 

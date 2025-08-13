@@ -9,4 +9,4 @@ RUN pip install --no-cache \
 
 COPY . .
 
-CMD ["python3", "-m", "sanic", "proxy:app", "--host=0.0.0.0", "--port=8000", "--debug", "--single-process"]
+CMD ["python3", "-m", "sanic", "app:app", "--host=0.0.0.0", "--port=8000", "--debug", "--single-process"]
