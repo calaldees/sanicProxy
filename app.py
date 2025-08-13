@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 import collections
 
-import aiohttp
 import sanic
 from sanic.views import HTTPMethodView
 from sanic.log import logger as log
@@ -20,6 +19,7 @@ class DictPersisted(collections.abc.MutableMapping):
             self.routes = json.load(f)
 
     def _persist(self):
+        # TODO: asyncio.Lock ?
         with self.data_source.open('w') as f:
             json.dump(self.routes, f)
 
@@ -46,6 +46,9 @@ ROUTES = DictPersisted(Path('proxy-routing.json'))
 
 
 app = sanic.Sanic("proxy")
+
+from sanic_proxy import AioHttpSanicProxy
+app.ctx.proxy = AioHttpSanicProxy()
 
 
 @app.get("/static/proxy-frontend.html")
@@ -93,23 +96,7 @@ async def proxy(request: sanic.Request, path: str):
     url = f"{target_host}{request.raw_url.decode('utf8')}"
     log.info(f'Routing {request_host=} {target_host=} {path=} {url=}')
 
-    # AIOHTTP
-    async with aiohttp.ClientSession() as session:
-        async with session.request(
-            method=request.method,
-            url=url,
-            headers=request.headers,
-            data=request.body,
-            auto_decompress=False,
-            ssl=False,  # Ignore all SSL certificates
-        ) as response:
-            _response = await request.respond(
-                status=response.status,
-                headers=response.headers,
-            )
-            async for chunk in response.content.iter_chunked(pow(2, 16)):
-                await _response.send(chunk)
-            await _response.eof()
+    request.ctx.proxy(request, url)
 
 
 if __name__ == '__main__':
